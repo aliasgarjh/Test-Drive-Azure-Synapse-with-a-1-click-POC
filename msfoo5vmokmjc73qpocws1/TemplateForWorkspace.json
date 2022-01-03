@@ -511,23 +511,23 @@
 					},
 					"SynapseWorkspaceName": {
 						"type": "string",
-						"defaultValue": "<synapse-workspace-name>.database.windows.net"
+						"defaultValue": "msfoo5vmokmjc73qpocws1.database.windows.net"
 					},
 					"SQLDedicatedPoolName": {
 						"type": "string",
-						"defaultValue": "<sql-dedicated-pool-name>"
+						"defaultValue": "msfoo5vmokmjc73qpocws1p1"
 					},
 					"SQLLoginUsername": {
 						"type": "string",
-						"defaultValue": "<sql-login-username>"
+						"defaultValue": "aliasgarjh"
 					},
 					"KeyVaultName": {
 						"type": "string",
-						"defaultValue": "<keyvaukt-name>"
+						"defaultValue": "kvmsfoo5vmokmjc73qpoc"
 					},
 					"datalakeAccountName": {
 						"type": "string",
-						"defaultValue": "<datalake-account-name>"
+						"defaultValue": "msfoo5vmokmjc73qpoc"
 					}
 				},
 				"folder": {
@@ -541,7 +541,6 @@
 				"[concat(variables('workspaceId'), '/datasets/faresDataSource')]",
 				"[concat(variables('workspaceId'), '/datasets/faresDataSink')]",
 				"[concat(variables('workspaceId'), '/dataflows/tripFaresDataTransformations')]",
-				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
 				"[concat(variables('workspaceId'), '/datasets/azureSynapseAnalyticsSchema')]",
 				"[concat(variables('workspaceId'), '/datasets/AzureSynapseAnalyticsTripsData')]",
 				"[concat(variables('workspaceId'), '/datasets/AzureSynapseAnalyticsFaresData')]",
