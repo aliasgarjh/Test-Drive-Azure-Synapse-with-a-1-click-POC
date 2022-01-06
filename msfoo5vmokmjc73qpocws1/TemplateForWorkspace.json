@@ -1235,6 +1235,16 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/SelfHostedIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/tripFaresDataTransformations')]",
 			"type": "Microsoft.Synapse/workspaces/dataflows",
 			"apiVersion": "2019-06-01-preview",
@@ -1316,13 +1326,14 @@
 					"conf": {
 						"spark.dynamicAllocation.enabled": "false",
 						"spark.dynamicAllocation.minExecutors": "2",
-						"spark.dynamicAllocation.maxExecutors": "2",
-						"spark.autotune.trackingId": "f08d444c-4cd4-4b64-af8b-8068be2d07a8"
+						"spark.dynamicAllocation.maxExecutors": "2"
 					}
 				},
 				"metadata": {
 					"saveOutput": true,
-					"enableDebugMode": false,
+					"synapse_widget": {
+						"version": "0.1"
+					},
 					"kernelspec": {
 						"name": "synapse_pyspark",
 						"display_name": "Synapse PySpark"
@@ -1333,17 +1344,21 @@
 					"a365ComputeOptions": {
 						"id": "/subscriptions/4eeedd72-d937-4243-86d1-c3982a84d924/resourceGroups/nashahzsfin/providers/Microsoft.Synapse/workspaces/mfstspdjvzuh3xeu2pocws1/bigDataPools/ws1sparkpool1",
 						"name": "ws1sparkpool1",
+						"type": "Spark",
+						"endpoint": "https://mfstspdjvzuh3xeu2pocws1.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/ws1sparkpool1",
 						"auth": {
 							"type": "AAD",
 							"authResource": "https://dev.azuresynapse.net"
-						}
-					},
-					"sessionKeepAliveTimeout": 30
+						},
+						"sparkVersion": "2.4",
+						"nodeCount": 5,
+						"cores": 8,
+						"memory": 56
+					}
 				},
 				"cells": [
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"# Predict NYC Taxi Tips using Spark ML and Azure Open Datasets\n",
 							"\n",
@@ -1356,7 +1371,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"import matplotlib.pyplot as plt\n",
 							"\n",
@@ -1379,7 +1393,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Ingest Data¶ \n",
 							"\n",
@@ -1388,7 +1401,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Import NYC yellow cab data from Azure Open Datasets\n",
 							"from azureml.opendatasets import NycTlcYellow\n",
@@ -1407,7 +1419,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"#To make development easier, faster and less expensive downsample for now\n",
 							"sampled_taxi_df = nyc_tlc_df.sample(True, 0.001, seed=1234)"
@@ -1417,7 +1428,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Exploratory Data Analysis\n",
 							"\n",
@@ -1426,7 +1436,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"#The charting package needs a Pandas dataframe or numpy array do the conversion\n",
 							"sampled_taxi_pd_df = sampled_taxi_df.toPandas()\n",
@@ -1461,7 +1470,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Data Prep and Featurization\n",
 							"\n",
@@ -1473,7 +1481,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"taxi_df = sampled_taxi_df.select('totalAmount', 'fareAmount', 'tipAmount', 'paymentType', 'rateCodeId', 'passengerCount'\\\n",
 							"                                , 'tripDistance', 'tpepPickupDateTime', 'tpepDropoffDateTime'\\\n",
@@ -1496,7 +1503,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Data Prep and Featurization Part 2\n",
 							"\n",
@@ -1508,7 +1514,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"taxi_featurised_df = taxi_df.select('totalAmount', 'fareAmount', 'tipAmount', 'paymentType', 'passengerCount'\\\n",
 							"                                                , 'tripDistance', 'weekdayString', 'pickupHour','tripTimeSecs','tipped'\\\n",
@@ -1525,7 +1530,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Encoding\n",
 							"\n",
@@ -1539,7 +1543,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# The sample uses an algorithm that only works with numeric features convert them so they can be consumed\n",
 							"sI1 = StringIndexer(inputCol=\"trafficTimeBins\", outputCol=\"trafficTimeBinsIndex\"); \n",
@@ -1555,7 +1558,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Generation of Testing and Training Data Sets\n",
 							"Simple split, 70% for training and 30% for testing the model. Playing with this ratio may result in different models.\n",
@@ -1564,7 +1566,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"# Decide on the split between training and testing data from the dataframe \n",
 							"trainingFraction = 0.7\n",
@@ -1579,7 +1580,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Train the Model\n",
 							"\n",
@@ -1588,7 +1588,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"## Create a new LR object for the model\n",
 							"logReg = LogisticRegression(maxIter=10, regParam=0.3, labelCol = 'tipped')\n",
@@ -1616,7 +1615,6 @@
 					},
 					{
 						"cell_type": "markdown",
-						"metadata": {},
 						"source": [
 							"## Evaluate and Visualize\n",
 							"\n",
@@ -1626,7 +1624,6 @@
 					},
 					{
 						"cell_type": "code",
-						"metadata": {},
 						"source": [
 							"## Plot the ROC curve, no need for pandas as this uses the modelSummary object\n",
 							"modelSummary = lrModel.stages[-1].summary\n",
@@ -1662,6 +1659,968 @@
 			"type": "Microsoft.Synapse/workspaces/managedVirtualNetworks",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Database 1')]",
+			"type": "Microsoft.Synapse/workspaces/databases",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"Ddls": [
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"Properties": {
+								"IsSyMSCDMDatabase": true,
+								"DerivedModelDBInfo": "{\"ModelDirectives\":{\"BaseModel\":{\"Name\":\"Retail\",\"Version\":\"0.1.0\"}}}"
+							},
+							"Name": "Database 1",
+							"EntityType": "DATABASE",
+							"Source": {
+								"Provider": "ADLS",
+								"Location": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1",
+								"Properties": {
+									"FormatType": "csv",
+									"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage"
+								}
+							}
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "Customer",
+							"Description": "A customer is an individual or legal entity that has or has purchased a product or service.\n\nA potential customer is an individual or legal entity that has the desire to acquire a product or service, the financial ability to pay for that product or service and is located in a location in which the product or service can be delivered to them.\n\nThe definition of 'customer' is of critical importance for every organization.    \n\nIt is the customer that is the focus of product planning, marketing, sales, service, reporting and analytics.    Without 'customer' there would be no need for the organization to exist since its purpose is to serve the customer and profit from that interaction.\n\nThe definition of 'customer' must be consistent with how customers exist and interact with the organization in the real world.  An artificial or conceptual definition of 'customer' that is not consistent with these two objectives is doomed to fail because the data will not be consistent with the definition and employees will not accept concepts or terms that are not consistent with what they see, know and how they interact with customers on a working basis.\n\nMicrosoft defines 'customer' to meet these objectives.    When we look out into the real world we see two dominant types of customers:  human beings and legal entities.     \n\nHuman beings are obviously male and female individuals of various ages, sex, demographics and a variety of similar dimensions that describe and define them who purchase products, good and services.    \n\nLegal entities are those legally-defined entities such as corporations, partnerships, non-profit organizations, government organizations etc. that purchase products, goods and services.\n\nThis view of 'customer' is consistent with the real world and consistent with how employees view and interact with customers.\n\nOf course, that is just the start of identifying, defining and understanding each type of 'customer'.     There is a great deal of detail, complexity and related data that can be used to define each type of customer to various levels of detail and different dimensions of information.\n\nMicrosoft implements these detailed concepts and related data via two distinct business area models that expand the coverage and complexity of each type of customer:\n\n-  INDIVIDUAL CUSTOMER Business Area Model\n-  LEGAL ENTITY CUSTOMER Business Area Model\n\nNote:\nEach of the Microsoft models - enterprise, business area or data warehouse - have a representative level of detail for the appropriate type of customer, which is a 'subset' of the total data available in the associated INDIVIDUAL CUSTOMER or LEGAL ENTITY CUSTOMER business area models..   Reference either of those models to expand the coverage or level of detail in each respective data model.\n\nThe actual customer implemented in each model depends upon the dominant use of customer for that industry.     \n\nFor example, in the pharmaceutical industry the customer is a legal entity, which represents another corporation, company, government organization etc. that purchases the pharmaceutical product and then distributes that product to the end-customer, which is an individual in a retail environment or a government-distribution scheme.    \n\nFor this example, the pharmaceutical models will have the legal entity customer represented but not the individual 'end customer' since that is represented in the appropriate retail industry models, which are a different offering.     \n\nOf course, the entire set of data available for a legal entity customer is contained in the associated LEGAL ENTITY CUSTOMER Business Area Model.   Reference the LEGAL ENTITY CUSTOMER Business Area Model to incorporate additional data that may be of relevance.\n\nIn many industries both types of customers are represented since a legal entity or individual can purchase products, goods or services and enter into contracts.    For these industries, both types of customers are represented by some of the more significant or relevant data derived from the associated LEGAL ENTITY or INDIVIDUAL CUSTOMER business area models.   These models can be used to expand the scope or level of detail in any of the enterprise, business area or data warehouse models.",
+							"EntityType": "TABLE",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "CustomerId",
+										"Description": "The unique identifier of a Customer.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "CustomerId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										}
+									},
+									{
+										"Name": "CustomerEstablishedDate",
+										"Description": "The date that the Customer relationship was established.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "CustomerEstablishedDate"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "date",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"DateFormat": "YYYY-MM-DD",
+												"HIVE_TYPE_STRING": "date"
+											}
+										}
+									},
+									{
+										"Name": "CustomerTypeId",
+										"Description": "The unique identifier of a Customer Type.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "CustomerTypeId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "ResponsibilityCenterId",
+										"Description": "The unique identifier of a Responsibility Center.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "ResponsibilityCenterId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "LedgerId",
+										"Description": "The unique identifier of a Ledger.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "LedgerId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "LedgerAccountNumber",
+										"Description": "The unique identifier of a Ledger Account.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "LedgerAccountNumber"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 16,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "CustomerNote",
+										"Description": "A note, comment or additional information regarding the Customer.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "CustomerNote"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 1024,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									},
+									{
+										"Name": "PartyId",
+										"Description": "The unique identifier of a Party.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "PartyId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										}
+									},
+									{
+										"Name": "GlobalLocationNumber",
+										"Description": "The Global Location Number (GLN) is a simple tool used to uniquely identify locations. It can be used to identify physical locations such as a warehouse, legal entities, or a function / department within a legal entity. The GLN is part of the GS1 system of standards.",
+										"BaseAttributeReference": {
+											"Entity": "Customer.cdm.json/Customer",
+											"Name": "GlobalLocationNumber"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "decimal",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Precision": 13,
+											"Scale": 0,
+											"Properties": {
+												"HIVE_TYPE_STRING": "decimal"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.mapred.SequenceFileInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat",
+									"FormatType": "csv",
+									"SerializeLib": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+									"Properties": {
+										"path": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/Customer",
+										"delimiter": ",",
+										"multiLine": "false",
+										"firstRowAsHeader": "false",
+										"serialization.format": "1",
+										"escape": "\\",
+										"quote": "\"",
+										"FormatTypeSetToDatabaseDefault": true,
+										"header": "false"
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/Customer",
+									"Properties": {
+										"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage",
+										"LocationSetToDatabaseDefault": true
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{\"CustomerId\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerId\"},\"CustomerEstablishedDate\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerEstablishedDate\"},\"CustomerTypeId\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerTypeId\"},\"ResponsibilityCenterId\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"ResponsibilityCenterId\"},\"LedgerId\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"LedgerId\"},\"LedgerAccountNumber\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"LedgerAccountNumber\"},\"CustomerNote\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerNote\"},\"PartyId\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"PartyId\"},\"GlobalLocationNumber\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"GlobalLocationNumber\"}}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"DerivedModelEntityInfo": "{\"entityDirectives\":{\"name\":\"Customer\",\"description\":\"A customer is an individual or legal entity that has or has purchased a product or service.\\n\\nA potential customer is an individual or legal entity that has the desire to acquire a product or service, the financial ability to pay for that product or service and is located in a location in which the product or service can be delivered to them.\\n\\nThe definition of 'customer' is of critical importance for every organization.    \\n\\nIt is the customer that is the focus of product planning, marketing, sales, service, reporting and analytics.    Without 'customer' there would be no need for the organization to exist since its purpose is to serve the customer and profit from that interaction.\\n\\nThe definition of 'customer' must be consistent with how customers exist and interact with the organization in the real world.  An artificial or conceptual definition of 'customer' that is not consistent with these two objectives is doomed to fail because the data will not be consistent with the definition and employees will not accept concepts or terms that are not consistent with what they see, know and how they interact with customers on a working basis.\\n\\nMicrosoft defines 'customer' to meet these objectives.    When we look out into the real world we see two dominant types of customers:  human beings and legal entities.     \\n\\nHuman beings are obviously male and female individuals of various ages, sex, demographics and a variety of similar dimensions that describe and define them who purchase products, good and services.    \\n\\nLegal entities are those legally-defined entities such as corporations, partnerships, non-profit organizations, government organizations etc. that purchase products, goods and services.\\n\\nThis view of 'customer' is consistent with the real world and consistent with how employees view and interact with customers.\\n\\nOf course, that is just the start of identifying, defining and understanding each type of 'customer'.     There is a great deal of detail, complexity and related data that can be used to define each type of customer to various levels of detail and different dimensions of information.\\n\\nMicrosoft implements these detailed concepts and related data via two distinct business area models that expand the coverage and complexity of each type of customer:\\n\\n-  INDIVIDUAL CUSTOMER Business Area Model\\n-  LEGAL ENTITY CUSTOMER Business Area Model\\n\\nNote:\\nEach of the Microsoft models - enterprise, business area or data warehouse - have a representative level of detail for the appropriate type of customer, which is a 'subset' of the total data available in the associated INDIVIDUAL CUSTOMER or LEGAL ENTITY CUSTOMER business area models..   Reference either of those models to expand the coverage or level of detail in each respective data model.\\n\\nThe actual customer implemented in each model depends upon the dominant use of customer for that industry.     \\n\\nFor example, in the pharmaceutical industry the customer is a legal entity, which represents another corporation, company, government organization etc. that purchases the pharmaceutical product and then distributes that product to the end-customer, which is an individual in a retail environment or a government-distribution scheme.    \\n\\nFor this example, the pharmaceutical models will have the legal entity customer represented but not the individual 'end customer' since that is represented in the appropriate retail industry models, which are a different offering.     \\n\\nOf course, the entire set of data available for a legal entity customer is contained in the associated LEGAL ENTITY CUSTOMER Business Area Model.   Reference the LEGAL ENTITY CUSTOMER Business Area Model to incorporate additional data that may be of relevance.\\n\\nIn many industries both types of customers are represented since a legal entity or individual can purchase products, goods or services and enter into contracts.    For these industries, both types of customers are represented by some of the more significant or relevant data derived from the associated LEGAL ENTITY or INDIVIDUAL CUSTOMER business area models.   These models can be used to expand the scope or level of detail in any of the enterprise, business area or data warehouse models.\",\"baseEntityReference\":{\"name\":\"Customer\",\"path\":\"Customer.cdm.json/Customer\"},\"projectionInfo\":{\"attributes\":[{\"type\":\"Existing\",\"name\":\"CustomerId\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerId\"},\"dataType\":\"long\"},{\"type\":\"Existing\",\"name\":\"CustomerEstablishedDate\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerEstablishedDate\"},\"dataType\":\"date\",\"dateFormat\":\"YYYY-MM-DD\"},{\"type\":\"Existing\",\"name\":\"CustomerTypeId\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerTypeId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"ResponsibilityCenterId\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"ResponsibilityCenterId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"LedgerId\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"LedgerId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"LedgerAccountNumber\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"LedgerAccountNumber\"},\"dataType\":\"string\",\"dataTypeLength\":16},{\"type\":\"Existing\",\"name\":\"CustomerNote\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"CustomerNote\"},\"dataType\":\"string\",\"dataTypeLength\":1024},{\"type\":\"Existing\",\"name\":\"PartyId\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"PartyId\"},\"dataType\":\"long\"},{\"type\":\"Existing\",\"name\":\"GlobalLocationNumber\",\"attributeReference\":{\"entity\":\"Customer.cdm.json/Customer\",\"name\":\"GlobalLocationNumber\"},\"dataType\":\"decimal\",\"dataTypeLength\":13,\"scale\":0}]},\"primaryKey\":[\"CustomerId\"]}}",
+								"Description": "A customer is an individual or legal entity that has or has purchased a product or service.\n\nA potential customer is an individual or legal entity that has the desire to acquire a product or service, the financial ability to pay for that product or service and is located in a location in which the product or service can be delivered to them.\n\nThe definition of 'customer' is of critical importance for every organization.    \n\nIt is the customer that is the focus of product planning, marketing, sales, service, reporting and analytics.    Without 'customer' there would be no need for the organization to exist since its purpose is to serve the customer and profit from that interaction.\n\nThe definition of 'customer' must be consistent with how customers exist and interact with the organization in the real world.  An artificial or conceptual definition of 'customer' that is not consistent with these two objectives is doomed to fail because the data will not be consistent with the definition and employees will not accept concepts or terms that are not consistent with what they see, know and how they interact with customers on a working basis.\n\nMicrosoft defines 'customer' to meet these objectives.    When we look out into the real world we see two dominant types of customers:  human beings and legal entities.     \n\nHuman beings are obviously male and female individuals of various ages, sex, demographics and a variety of similar dimensions that describe and define them who purchase products, good and services.    \n\nLegal entities are those legally-defined entities such as corporations, partnerships, non-profit organizations, government organizations etc. that purchase products, goods and services.\n\nThis view of 'customer' is consistent with the real world and consistent with how employees view and interact with customers.\n\nOf course, that is just the start of identifying, defining and understanding each type of 'customer'.     There is a great deal of detail, complexity and related data that can be used to define each type of customer to various levels of detail and different dimensions of information.\n\nMicrosoft implements these detailed concepts and related data via two distinct business area models that expand the coverage and complexity of each type of customer:\n\n-  INDIVIDUAL CUSTOMER Business Area Model\n-  LEGAL ENTITY CUSTOMER Business Area Model\n\nNote:\nEach of the Microsoft models - enterprise, business area or data warehouse - have a representative level of detail for the appropriate type of customer, which is a 'subset' of the total data available in the associated INDIVIDUAL CUSTOMER or LEGAL ENTITY CUSTOMER business area models..   Reference either of those models to expand the coverage or level of detail in each respective data model.\n\nThe actual customer implemented in each model depends upon the dominant use of customer for that industry.     \n\nFor example, in the pharmaceutical industry the customer is a legal entity, which represents another corporation, company, government organization etc. that purchases the pharmaceutical product and then distributes that product to the end-customer, which is an individual in a retail environment or a government-distribution scheme.    \n\nFor this example, the pharmaceutical models will have the legal entity customer represented but not the individual 'end customer' since that is represented in the appropriate retail industry models, which are a different offering.     \n\nOf course, the entire set of data available for a legal entity customer is contained in the associated LEGAL ENTITY CUSTOMER Business Area Model.   Reference the LEGAL ENTITY CUSTOMER Business Area Model to incorporate additional data that may be of relevance.\n\nIn many industries both types of customers are represented since a legal entity or individual can purchase products, goods or services and enter into contracts.    For these industries, both types of customers are represented by some of the more significant or relevant data derived from the associated LEGAL ENTITY or INDIVIDUAL CUSTOMER business area models.   These models can be used to expand the scope or level of detail in any of the enterprise, business area or data warehouse models.",
+								"DisplayFolderInfo": "{\"name\":\"Customer\",\"colorCode\":\"#E3008C\"}",
+								"PrimaryKeys": "CustomerId",
+								"spark.sql.sources.provider": "csv"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "CustomerActivity",
+							"Description": "The Activity(s) that a specific Individual Customer has acknowledged was identified or recorded as of the indicated date.\n\nActivities, Interests and Opinions are the foundation of Psychographics and Psychographic Segmentation.     Activities, Interests and Opinions equate to 'lifestyle'.    Activities, Interests and Opinions (AIO) are the basis for understanding consumer buying behavior as a function of their lifestyle.\n\nActivities describe what a consumer 'does', such as occupation, hobbies, entertainment.\n\nEach organization will identify, define and track a specific set of AIO's to gather information about, define consumers and make decisions. \n\nExamples:\n\nActivity =  \"Cooking\"\nActivity Type = \"Personal Interest\"\n\nActivity =  \"Golf\"\nActivity Type = \"Personal Sports\n\nActivity =  \"Mutual Fund Investing\"\nActivity Type = \"Finance\"\n\nSales, marketing and advertising activities are often planned for or targeted at groups involved in or interested in specific activities.",
+							"EntityType": "TABLE",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "CustomerId",
+										"Description": "The unique identifier of a Customer.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerActivity.cdm.json/CustomerActivity",
+											"Name": "CustomerId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										}
+									},
+									{
+										"Name": "ActivityId",
+										"Description": "The unique identifier of an Activity.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerActivity.cdm.json/CustomerActivity",
+											"Name": "ActivityId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "Date",
+										"Description": "The timestamp that the associated information is reported, recorded or effective as-of.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerActivity.cdm.json/CustomerActivity",
+											"Name": "Date"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "date",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"DateFormat": "YYYY-MM-DD",
+												"HIVE_TYPE_STRING": "date"
+											}
+										}
+									},
+									{
+										"Name": "AioLevelId",
+										"Description": "The unique identifier of an AIO Level.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerActivity.cdm.json/CustomerActivity",
+											"Name": "AioLevelId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "CustomerActivityNote",
+										"Description": "A note, comment or additional information related to the Activity in which the Customer participates.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerActivity.cdm.json/CustomerActivity",
+											"Name": "CustomerActivityNote"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 1024,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.mapred.SequenceFileInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat",
+									"FormatType": "csv",
+									"SerializeLib": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+									"Properties": {
+										"path": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerActivity",
+										"delimiter": ",",
+										"multiLine": "false",
+										"firstRowAsHeader": "false",
+										"serialization.format": "1",
+										"escape": "\\",
+										"quote": "\"",
+										"FormatTypeSetToDatabaseDefault": true,
+										"header": "false"
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerActivity",
+									"Properties": {
+										"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage",
+										"LocationSetToDatabaseDefault": true
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{\"CustomerId\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"CustomerId\"},\"ActivityId\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"ActivityId\"},\"Date\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"Date\"},\"AioLevelId\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"AioLevelId\"},\"CustomerActivityNote\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"CustomerActivityNote\"}}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"DerivedModelEntityInfo": "{\"entityDirectives\":{\"baseEntityReference\":{\"name\":\"CustomerActivity\",\"path\":\"CustomerActivity.cdm.json/CustomerActivity\"},\"description\":\"The Activity(s) that a specific Individual Customer has acknowledged was identified or recorded as of the indicated date.\\n\\nActivities, Interests and Opinions are the foundation of Psychographics and Psychographic Segmentation.     Activities, Interests and Opinions equate to 'lifestyle'.    Activities, Interests and Opinions (AIO) are the basis for understanding consumer buying behavior as a function of their lifestyle.\\n\\nActivities describe what a consumer 'does', such as occupation, hobbies, entertainment.\\n\\nEach organization will identify, define and track a specific set of AIO's to gather information about, define consumers and make decisions. \\n\\nExamples:\\n\\nActivity =  \\\"Cooking\\\"\\nActivity Type = \\\"Personal Interest\\\"\\n\\nActivity =  \\\"Golf\\\"\\nActivity Type = \\\"Personal Sports\\n\\nActivity =  \\\"Mutual Fund Investing\\\"\\nActivity Type = \\\"Finance\\\"\\n\\nSales, marketing and advertising activities are often planned for or targeted at groups involved in or interested in specific activities.\",\"primaryKey\":[\"CustomerId\",\"ActivityId\",\"Date\"],\"projectionInfo\":{\"attributes\":[{\"type\":\"Existing\",\"name\":\"CustomerId\",\"attributeReference\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"CustomerId\"},\"dataType\":\"long\"},{\"type\":\"Existing\",\"name\":\"ActivityId\",\"attributeReference\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"ActivityId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"Date\",\"attributeReference\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"Date\"},\"dataType\":\"date\",\"dateFormat\":\"YYYY-MM-DD\"},{\"type\":\"Existing\",\"name\":\"AioLevelId\",\"attributeReference\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"AioLevelId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"CustomerActivityNote\",\"attributeReference\":{\"entity\":\"CustomerActivity.cdm.json/CustomerActivity\",\"name\":\"CustomerActivityNote\"},\"dataType\":\"string\",\"dataTypeLength\":1024}]}}}",
+								"Description": "The Activity(s) that a specific Individual Customer has acknowledged was identified or recorded as of the indicated date.\n\nActivities, Interests and Opinions are the foundation of Psychographics and Psychographic Segmentation.     Activities, Interests and Opinions equate to 'lifestyle'.    Activities, Interests and Opinions (AIO) are the basis for understanding consumer buying behavior as a function of their lifestyle.\n\nActivities describe what a consumer 'does', such as occupation, hobbies, entertainment.\n\nEach organization will identify, define and track a specific set of AIO's to gather information about, define consumers and make decisions. \n\nExamples:\n\nActivity =  \"Cooking\"\nActivity Type = \"Personal Interest\"\n\nActivity =  \"Golf\"\nActivity Type = \"Personal Sports\n\nActivity =  \"Mutual Fund Investing\"\nActivity Type = \"Finance\"\n\nSales, marketing and advertising activities are often planned for or targeted at groups involved in or interested in specific activities.",
+								"DisplayFolderInfo": "{\"name\":\"Customer\",\"colorCode\":\"#E3008C\"}",
+								"PrimaryKeys": "CustomerId,ActivityId,Date",
+								"spark.sql.sources.provider": "csv"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "CustomerBiometric",
+							"Description": "The automatic recognition of customers based on unique combinations of measurable physical or behavioral characteristics. Examples include fingerprints, iris scanning, face and voice recognition, or hand geometry.",
+							"EntityType": "TABLE",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "CustomerId",
+										"Description": "The unique identifier of a Customer.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerBiometric.cdm.json/CustomerBiometric",
+											"Name": "CustomerId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										}
+									},
+									{
+										"Name": "BiometricTypeId",
+										"Description": "The unique identifier of a biometric type.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerBiometric.cdm.json/CustomerBiometric",
+											"Name": "BiometricTypeId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "Timestamp",
+										"Description": "The timestamp that the associated information is reported, recorded or effective as-of.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerBiometric.cdm.json/CustomerBiometric",
+											"Name": "Timestamp"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "timestamp",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"TimestampFormat": "YYYY-MM-DD HH:MM:SS.fffffffff",
+												"HIVE_TYPE_STRING": "timestamp"
+											}
+										}
+									},
+									{
+										"Name": "CustomerBiometricTemplate",
+										"Description": "The biometric reference pattern of an individual of the associated biometric stored for matching. \n\nBioCert devices convert fingerprint information into mathematical templates, so actual fingerprint images are not stored and cannot be reconstructed based on template data.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerBiometric.cdm.json/CustomerBiometric",
+											"Name": "CustomerBiometricTemplate"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "binary",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"HIVE_TYPE_STRING": "binary"
+											}
+										}
+									},
+									{
+										"Name": "CustomerBiometricNote",
+										"Description": "A note, comment or additional information regarding the customer biometric.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerBiometric.cdm.json/CustomerBiometric",
+											"Name": "CustomerBiometricNote"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 1024,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.mapred.SequenceFileInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat",
+									"FormatType": "csv",
+									"SerializeLib": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+									"Properties": {
+										"path": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerBiometric",
+										"delimiter": ",",
+										"multiLine": "false",
+										"firstRowAsHeader": "false",
+										"serialization.format": "1",
+										"escape": "\\",
+										"quote": "\"",
+										"FormatTypeSetToDatabaseDefault": true,
+										"header": "false"
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerBiometric",
+									"Properties": {
+										"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage",
+										"LocationSetToDatabaseDefault": true
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{\"CustomerId\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"CustomerId\"},\"BiometricTypeId\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"BiometricTypeId\"},\"Timestamp\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"Timestamp\"},\"CustomerBiometricTemplate\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"CustomerBiometricTemplate\"},\"CustomerBiometricNote\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"CustomerBiometricNote\"}}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"DerivedModelEntityInfo": "{\"entityDirectives\":{\"baseEntityReference\":{\"name\":\"CustomerBiometric\",\"path\":\"CustomerBiometric.cdm.json/CustomerBiometric\"},\"description\":\"The automatic recognition of customers based on unique combinations of measurable physical or behavioral characteristics. Examples include fingerprints, iris scanning, face and voice recognition, or hand geometry.\",\"primaryKey\":[\"CustomerId\",\"BiometricTypeId\",\"Timestamp\"],\"projectionInfo\":{\"attributes\":[{\"type\":\"Existing\",\"name\":\"CustomerId\",\"attributeReference\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"CustomerId\"},\"dataType\":\"long\"},{\"type\":\"Existing\",\"name\":\"BiometricTypeId\",\"attributeReference\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"BiometricTypeId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"Timestamp\",\"attributeReference\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"Timestamp\"},\"dataType\":\"timestamp\",\"timestampFormat\":\"YYYY-MM-DD HH:MM:SS.fffffffff\"},{\"type\":\"Existing\",\"name\":\"CustomerBiometricTemplate\",\"attributeReference\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"CustomerBiometricTemplate\"},\"dataType\":\"binary\"},{\"type\":\"Existing\",\"name\":\"CustomerBiometricNote\",\"attributeReference\":{\"entity\":\"CustomerBiometric.cdm.json/CustomerBiometric\",\"name\":\"CustomerBiometricNote\"},\"dataType\":\"string\",\"dataTypeLength\":1024}]}}}",
+								"Description": "The automatic recognition of customers based on unique combinations of measurable physical or behavioral characteristics. Examples include fingerprints, iris scanning, face and voice recognition, or hand geometry.",
+								"DisplayFolderInfo": "{\"name\":\"Customer\",\"colorCode\":\"#E3008C\"}",
+								"PrimaryKeys": "CustomerId,BiometricTypeId,Timestamp",
+								"spark.sql.sources.provider": "csv"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "CustomerCreditStatus",
+							"Description": "The Credit Status of the Customer for the associated period.",
+							"EntityType": "TABLE",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "CustomerId",
+										"Description": "The unique identifier of a Customer.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCreditStatus.cdm.json/CustomerCreditStatus",
+											"Name": "CustomerId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										}
+									},
+									{
+										"Name": "PeriodStartDate",
+										"Description": "The period start date for which the associated Credit Status is defined for the Customer Account.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCreditStatus.cdm.json/CustomerCreditStatus",
+											"Name": "PeriodStartDate"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "date",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"DateFormat": "YYYY-MM-DD",
+												"HIVE_TYPE_STRING": "date"
+											}
+										}
+									},
+									{
+										"Name": "PeriodEndDate",
+										"Description": "The period end date for which the associated Credit Status is defined for the Customer Account.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCreditStatus.cdm.json/CustomerCreditStatus",
+											"Name": "PeriodEndDate"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "date",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"DateFormat": "YYYY-MM-DD",
+												"HIVE_TYPE_STRING": "date"
+											}
+										}
+									},
+									{
+										"Name": "CreditStatusTypeId",
+										"Description": "The unique identifier of a Credit Status Type.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCreditStatus.cdm.json/CustomerCreditStatus",
+											"Name": "CreditStatusTypeId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "CreditStatusNote",
+										"Description": "A note, comment or additional information regarding the Credit Status.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCreditStatus.cdm.json/CustomerCreditStatus",
+											"Name": "CreditStatusNote"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 1024,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.mapred.SequenceFileInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat",
+									"FormatType": "csv",
+									"SerializeLib": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+									"Properties": {
+										"path": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerCreditStatus",
+										"delimiter": ",",
+										"multiLine": "false",
+										"firstRowAsHeader": "false",
+										"serialization.format": "1",
+										"escape": "\\",
+										"quote": "\"",
+										"FormatTypeSetToDatabaseDefault": true,
+										"header": "false"
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerCreditStatus",
+									"Properties": {
+										"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage",
+										"LocationSetToDatabaseDefault": true
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{\"CustomerId\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"CustomerId\"},\"PeriodStartDate\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"PeriodStartDate\"},\"PeriodEndDate\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"PeriodEndDate\"},\"CreditStatusTypeId\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"CreditStatusTypeId\"},\"CreditStatusNote\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"CreditStatusNote\"}}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"DerivedModelEntityInfo": "{\"entityDirectives\":{\"baseEntityReference\":{\"name\":\"CustomerCreditStatus\",\"path\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\"},\"description\":\"The Credit Status of the Customer for the associated period.\",\"primaryKey\":[\"CustomerId\",\"PeriodStartDate\"],\"projectionInfo\":{\"attributes\":[{\"type\":\"Existing\",\"name\":\"CustomerId\",\"attributeReference\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"CustomerId\"},\"dataType\":\"long\"},{\"type\":\"Existing\",\"name\":\"PeriodStartDate\",\"attributeReference\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"PeriodStartDate\"},\"dataType\":\"date\",\"dateFormat\":\"YYYY-MM-DD\"},{\"type\":\"Existing\",\"name\":\"PeriodEndDate\",\"attributeReference\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"PeriodEndDate\"},\"dataType\":\"date\",\"dateFormat\":\"YYYY-MM-DD\"},{\"type\":\"Existing\",\"name\":\"CreditStatusTypeId\",\"attributeReference\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"CreditStatusTypeId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"CreditStatusNote\",\"attributeReference\":{\"entity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"name\":\"CreditStatusNote\"},\"dataType\":\"string\",\"dataTypeLength\":1024}]}}}",
+								"Description": "The Credit Status of the Customer for the associated period.",
+								"DisplayFolderInfo": "{\"name\":\"Customer\",\"colorCode\":\"#E3008C\"}",
+								"PrimaryKeys": "CustomerId,PeriodStartDate",
+								"spark.sql.sources.provider": "csv"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "CustomerCountryTaxStatus",
+							"Description": "The status of the Customer in the associated Country.",
+							"EntityType": "TABLE",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "CustomerId",
+										"Description": "The unique identifier of a Customer.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus",
+											"Name": "CustomerId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "long",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "long"
+											}
+										}
+									},
+									{
+										"Name": "CountryId",
+										"Description": "The unique identifier of the Country.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus",
+											"Name": "CountryId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "PeriodStartDate",
+										"Description": "The period start date for which the associated D&B data is effective or 'as-of'.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus",
+											"Name": "PeriodStartDate"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "date",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"DateFormat": "YYYY-MM-DD",
+												"HIVE_TYPE_STRING": "date"
+											}
+										}
+									},
+									{
+										"Name": "PeriodEndDate",
+										"Description": "The period end date for which the associated D&B data is effective or 'as-of'.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus",
+											"Name": "PeriodEndDate"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "date",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Properties": {
+												"DateFormat": "YYYY-MM-DD",
+												"HIVE_TYPE_STRING": "date"
+											}
+										}
+									},
+									{
+										"Name": "TaxStatusId",
+										"Description": "The unique identifier of a tax status.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus",
+											"Name": "TaxStatusId"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "integer",
+											"IsComplexType": false,
+											"IsNullable": false,
+											"Properties": {
+												"HIVE_TYPE_STRING": "integer"
+											}
+										}
+									},
+									{
+										"Name": "CustomerCountryTaxStatusNote",
+										"Description": "Notes, comments or additional information regarding the Customer Country Tax Status.",
+										"BaseAttributeReference": {
+											"Entity": "CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus",
+											"Name": "CustomerCountryTaxStatusNote"
+										},
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 1024,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.mapred.SequenceFileInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat",
+									"FormatType": "csv",
+									"SerializeLib": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+									"Properties": {
+										"path": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerCountryTaxStatus",
+										"delimiter": ",",
+										"multiLine": "false",
+										"firstRowAsHeader": "false",
+										"serialization.format": "1",
+										"escape": "\\",
+										"quote": "\"",
+										"FormatTypeSetToDatabaseDefault": true,
+										"header": "false"
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://dlsmsfpocfs1@msfoo5vmokmjc73qpoc.dfs.core.windows.net/Database 1/CustomerCountryTaxStatus",
+									"Properties": {
+										"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage",
+										"LocationSetToDatabaseDefault": true
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{\"CustomerId\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"CustomerId\"},\"CountryId\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"CountryId\"},\"PeriodStartDate\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"PeriodStartDate\"},\"PeriodEndDate\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"PeriodEndDate\"},\"TaxStatusId\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"TaxStatusId\"},\"CustomerCountryTaxStatusNote\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"CustomerCountryTaxStatusNote\"}}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"DerivedModelEntityInfo": "{\"entityDirectives\":{\"baseEntityReference\":{\"name\":\"CustomerCountryTaxStatus\",\"path\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\"},\"description\":\"The status of the Customer in the associated Country.\",\"primaryKey\":[\"CustomerId\",\"CountryId\",\"PeriodStartDate\"],\"projectionInfo\":{\"attributes\":[{\"type\":\"Existing\",\"name\":\"CustomerId\",\"attributeReference\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"CustomerId\"},\"dataType\":\"long\"},{\"type\":\"Existing\",\"name\":\"CountryId\",\"attributeReference\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"CountryId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"PeriodStartDate\",\"attributeReference\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"PeriodStartDate\"},\"dataType\":\"date\",\"dateFormat\":\"YYYY-MM-DD\"},{\"type\":\"Existing\",\"name\":\"PeriodEndDate\",\"attributeReference\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"PeriodEndDate\"},\"dataType\":\"date\",\"dateFormat\":\"YYYY-MM-DD\"},{\"type\":\"Existing\",\"name\":\"TaxStatusId\",\"attributeReference\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"TaxStatusId\"},\"dataType\":\"integer\"},{\"type\":\"Existing\",\"name\":\"CustomerCountryTaxStatusNote\",\"attributeReference\":{\"entity\":\"CustomerCountryTaxStatus.cdm.json/CustomerCountryTaxStatus\",\"name\":\"CustomerCountryTaxStatusNote\"},\"dataType\":\"string\",\"dataTypeLength\":1024}]}}}",
+								"Description": "The status of the Customer in the associated Country.",
+								"DisplayFolderInfo": "{\"name\":\"Customer\",\"colorCode\":\"#E3008C\"}",
+								"PrimaryKeys": "CustomerId,CountryId,PeriodStartDate",
+								"spark.sql.sources.provider": "csv"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "Table_1",
+							"Description": "",
+							"EntityType": "TABLE",
+							"TableType": "EXTERNAL",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"StorageDescriptor": {
+								"Columns": [
+									{
+										"Name": "Column_1",
+										"OriginDataTypeName": {
+											"TypeName": "string",
+											"IsComplexType": false,
+											"IsNullable": true,
+											"Length": 256,
+											"Properties": {
+												"HIVE_TYPE_STRING": "string"
+											}
+										}
+									}
+								],
+								"Format": {
+									"InputFormat": "org.apache.hadoop.mapred.SequenceFileInputFormat",
+									"OutputFormat": "org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat",
+									"FormatType": "csv",
+									"SerializeLib": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+									"Properties": {
+										"path": "abfss://public@msfoo5vmokmjc73qpoc.dfs.core.windows.net/",
+										"delimiter": ",",
+										"multiLine": "false",
+										"firstRowAsHeader": "false",
+										"serialization.format": "1",
+										"escape": "\\",
+										"quote": "\"",
+										"FormatTypeSetToDatabaseDefault": false,
+										"header": "false"
+									}
+								},
+								"Source": {
+									"Provider": "ADLS",
+									"Location": "abfss://public@msfoo5vmokmjc73qpoc.dfs.core.windows.net/",
+									"Properties": {
+										"LinkedServiceName": "msfoo5vmokmjc73qpocws1-WorkspaceDefaultStorage",
+										"LocationSetToDatabaseDefault": false
+									}
+								},
+								"Properties": {
+									"textinputformat.record.delimiter": ",",
+									"compression": "{\"type\":\"None\",\"level\":\"optimal\"}",
+									"derivedModelAttributeInfo": "{\"attributeReferences\":{}}"
+								},
+								"Compressed": false,
+								"IsStoredAsSubdirectories": false
+							},
+							"Properties": {
+								"Description": "",
+								"DisplayFolderInfo": "{\"name\":\"Others\",\"colorCode\":\"\"}",
+								"PrimaryKeys": "",
+								"spark.sql.sources.provider": "csv"
+							},
+							"Retention": 0,
+							"Temporary": false,
+							"IsRewriteEnabled": false,
+							"Partitioning": {}
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					},
+					{
+						"ActionType": "CREATE",
+						"OldEntity": null,
+						"NewEntity": {
+							"Namespace": {
+								"DatabaseName": "Database 1"
+							},
+							"Name": "relationship-oqwjahxbha",
+							"EntityType": "RELATIONSHIP",
+							"Origin": {
+								"Type": "SPARK"
+							},
+							"FromTableName": "Customer",
+							"ToTableName": "CustomerCreditStatus",
+							"ColumnRelationshipInformations": [
+								{
+									"FromColumnName": "CustomerId",
+									"ToColumnName": "CustomerId"
+								}
+							],
+							"RelationshipType": 0,
+							"Properties": {
+								"DerivedModelRelationshipInfo": "{\"baseRelationship\":{\"fromEntity\":\"Customer.cdm.json/Customer\",\"toEntity\":\"CustomerCreditStatus.cdm.json/CustomerCreditStatus\",\"joinPairs\":[{\"fromAttribute\":\"CustomerId\",\"toAttribute\":\"CustomerId\"}]}}"
+							}
+						},
+						"Source": {
+							"Type": "SPARK"
+						}
+					}
+				]
+			},
 			"dependsOn": []
 		}
 	]
