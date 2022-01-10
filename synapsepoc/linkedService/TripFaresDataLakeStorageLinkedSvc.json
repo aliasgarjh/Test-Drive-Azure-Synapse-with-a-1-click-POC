@@ -1,0 +1,35 @@
+{
+	"name": "TripFaresDataLakeStorageLinkedSvc",
+	"properties": {
+		"parameters": {
+			"keyVaultName": {
+				"type": "string",
+				"defaultValue": "kvmsfoo5vmokmjc73qpoc"
+			},
+			"datalakeAccountName": {
+				"type": "string",
+				"defaultValue": "msfoo5vmokmjc73qpoc"
+			}
+		},
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "@{concat('https://',linkedService().datalakeAccountName,'.dfs.core.windows.net')}",
+			"accountKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "keyVaultLinkedservice",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"keyVaultName": "@linkedService().keyVaultName"
+					}
+				},
+				"secretName": "adlsAccessKey"
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
