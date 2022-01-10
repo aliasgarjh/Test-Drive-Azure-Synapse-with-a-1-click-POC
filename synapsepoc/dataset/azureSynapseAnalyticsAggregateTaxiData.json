@@ -1,12 +1,42 @@
 {
-	"name": "AzureSynapseAnalyticsTable1",
+	"name": "azureSynapseAnalyticsAggregateTaxiData",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "TripFaresSynapseAnalyticsLinkedService",
-			"type": "LinkedServiceReference"
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"SynapseWorkspaceName": "@dataset().SynapseWorkspaceName",
+				"SQLDedicatedPoolName": "@dataset().SQLDedicatedPoolName",
+				"keyVaultName": "@dataset().keyVaultName",
+				"SQLLoginUsername": "@dataset().SQLLoginUsername"
+			}
+		},
+		"parameters": {
+			"SchemaName": {
+				"type": "string"
+			},
+			"SynapseWorkspaceName": {
+				"type": "string"
+			},
+			"SQLDedicatedPoolName": {
+				"type": "string"
+			},
+			"keyVaultName": {
+				"type": "string"
+			},
+			"SQLLoginUsername": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "TripFareDatasets"
 		},
 		"annotations": [],
 		"type": "AzureSqlDWTable",
-		"schema": []
+		"schema": [],
+		"typeProperties": {
+			"schema": "@dataset().SchemaName",
+			"table": "AggregateTaxiData"
+		}
 	}
 }

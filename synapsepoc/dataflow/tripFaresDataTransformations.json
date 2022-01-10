@@ -25,7 +25,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "azureSynapseAnalyticsTable",
+						"referenceName": "azureSynapseAnalyticsAggregateTaxiData",
 						"type": "DatasetReference"
 					},
 					"name": "SynapseAnalyticsSink"
