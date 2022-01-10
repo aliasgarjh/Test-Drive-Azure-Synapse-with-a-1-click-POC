@@ -1,6 +1,14 @@
 {
 	"name": "faresDataSink",
 	"properties": {
+		"linkedServiceName": {
+			"referenceName": "TripFaresDataLakeStorageLinkedSvc",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"keyVaultName": "kvmsfoo5vmokmjc73qpoc",
+				"datalakeAccountName": "msfoo5vmokmjc73qpoc"
+			}
+		},
 		"parameters": {
 			"keyVaultName": {
 				"type": "string",

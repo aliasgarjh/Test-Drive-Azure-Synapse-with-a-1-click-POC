@@ -317,7 +317,23 @@
 						"tableOption": "autoCreate",
 						"disableMetricsCollection": false
 					},
-					"enableStaging": true
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "TripFaresDataLakeStorageLinkedService",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"keyVaultName": {
+									"value": "@pipeline().parameters.KeyVaultName",
+									"type": "Expression"
+								},
+								"datalakeAccountName": {
+									"value": "@pipeline().parameters.datalakeAccountName",
+									"type": "Expression"
+								}
+							}
+						}
+					}
 				},
 				"inputs": [
 					{
@@ -392,7 +408,23 @@
 						"tableOption": "autoCreate",
 						"disableMetricsCollection": false
 					},
-					"enableStaging": true
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "TripFaresDataLakeStorageLinkedService",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"keyVaultName": {
+									"value": "@pipeline().parameters.KeyVaultName",
+									"type": "Expression"
+								},
+								"datalakeAccountName": {
+									"value": "@pipeline().parameters.datalakeAccountName",
+									"type": "Expression"
+								}
+							}
+						}
+					}
 				},
 				"inputs": [
 					{
