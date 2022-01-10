@@ -320,17 +320,11 @@
 					"enableStaging": true,
 					"stagingSettings": {
 						"linkedServiceName": {
-							"referenceName": "TripFaresDataLakeStorageLinkedService",
+							"referenceName": "TripFaresDataLakeStorageLinkedSvc",
 							"type": "LinkedServiceReference",
 							"parameters": {
-								"keyVaultName": {
-									"value": "@pipeline().parameters.KeyVaultName",
-									"type": "Expression"
-								},
-								"datalakeAccountName": {
-									"value": "@pipeline().parameters.datalakeAccountName",
-									"type": "Expression"
-								}
+								"keyVaultName": "kvmsfoo5vmokmjc73qpoc",
+								"datalakeAccountName": "msfoo5vmokmjc73qpoc"
 							}
 						}
 					}
@@ -411,17 +405,11 @@
 					"enableStaging": true,
 					"stagingSettings": {
 						"linkedServiceName": {
-							"referenceName": "TripFaresDataLakeStorageLinkedService",
+							"referenceName": "TripFaresDataLakeStorageLinkedSvc",
 							"type": "LinkedServiceReference",
 							"parameters": {
-								"keyVaultName": {
-									"value": "@pipeline().parameters.KeyVaultName",
-									"type": "Expression"
-								},
-								"datalakeAccountName": {
-									"value": "@pipeline().parameters.datalakeAccountName",
-									"type": "Expression"
-								}
+								"keyVaultName": "kvmsfoo5vmokmjc73qpoc",
+								"datalakeAccountName": "msfoo5vmokmjc73qpoc"
 							}
 						}
 					}
