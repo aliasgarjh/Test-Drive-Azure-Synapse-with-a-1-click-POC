@@ -1,0 +1,16 @@
+{
+	"name": "SAPHanaCloudTrialService",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SapHana",
+		"typeProperties": {
+			"connectionString": "servernode=1d3d89d5-a318-401c-9a9f-12b1fb77ef3a.hana.trial-us10.hanacloud.ondemand.com:443;uid=DBADMIN",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIyOWYxM2I4Ny0yYWI0LTRlOTgtOWRmMy0zZjhlOTBlMzgzYzYiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "SelfHostedIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
